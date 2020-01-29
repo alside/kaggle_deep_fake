@@ -1,18 +1,19 @@
 import cv2
-import random
 import glob
 from joblib import Parallel, delayed
 from dsfd.detect import DSFDDetector
-
+import json
+# TODO: некоторые видосы почему-то не обрабатываются, поресерчить
 detector = DSFDDetector()
 
-sources = glob.glob("../data/dfdc_train_part_00/dfdc_train_part_0/*")
-
+data_path = "../data/dfdc_train_part_00/dfdc_train_part_0"
+sources = glob.glob(f"{data_path}/*.mp4")
+metadata = json.load(open(f"{data_path}/metadata.json"))
 
 def crop_video(source):
     print(source)
-    fname = source.split("/")[-1].split(".")[0]
-    target = random.choice(["FAKE", "REAL"])  # TODO: get from metadata
+    fname = source.split("/")[-1]
+    target = metadata[fname]["label"]
     faces_img_name = lambda x: f"../croped_faces/{fname}_{x}_{target}.jpg"  # TODO: get rid of lambda
     cam = cv2.VideoCapture(source)
     rec_shift = 150
@@ -24,7 +25,7 @@ def crop_video(source):
         try:
             detections = detector.detect_face(img, confidence_threshold=.7, shrink=0.1)
         except:
-            print("Broke wtf: ", img.shape)
+            print("Broke wtf: ", fname)
             break
         for detection in detections:
             x_min, y_min, x_max, y_max, probability = detection
@@ -37,7 +38,7 @@ def crop_video(source):
                             img[y_min_shifted:y_max_shifted,
                                 x_min_shifted:x_max_shifted]
                             )
-                print(f"written {faces_img_name(iface)}")
+                # print(f"written {faces_img_name(iface)}")
             iface += 1
 
 
